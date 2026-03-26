@@ -7,6 +7,7 @@ import { DEFAULT_PRODUCTS, type Product } from '@/lib/products'
 // ─── Types ─────────────────────────────────────────────────────────────────
 type Beoordeling = 'voldoet' | 'aandacht' | 'niet_voldoet'
 type Prioriteit = 'verplicht' | 'aanbevolen' | 'optioneel'
+type FeedbackStatus = 'positief' | 'negatief' | null
 
 type Bevinding = {
   id: string
@@ -68,6 +69,8 @@ export default function InspectieForm({ inspectieId }: { inspectieId?: string })
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState(false)
   const autoSaveTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  // Feedback per bevinding: { [bevinding_id]: { status, opmerking, verzonden } }
+  const [feedback, setFeedback] = useState<Record<string, { status: FeedbackStatus; opmerking: string; verzonden: boolean }>>({})
 
   const steps = ['Situatie', 'Foto analyse', 'Bevindingen', 'Materiaal', 'Advies']
 
@@ -298,6 +301,36 @@ export default function InspectieForm({ inspectieId }: { inspectieId?: string })
       console.error(err)
     } finally {
       setGeneratingTekst(false)
+    }
+  }
+
+  // ── Bevinding feedback ────────────────────────────────────────────────────
+  function setFeedbackStatus(bevId: string, status: FeedbackStatus) {
+    setFeedback(prev => ({ ...prev, [bevId]: { ...prev[bevId], status, opmerking: prev[bevId]?.opmerking || '', verzonden: false } }))
+  }
+
+  function setFeedbackOpmerking(bevId: string, opmerking: string) {
+    setFeedback(prev => ({ ...prev, [bevId]: { ...prev[bevId], opmerking, verzonden: prev[bevId]?.verzonden || false } }))
+  }
+
+  async function verstuurFeedback(bevId: string, beschrijving: string) {
+    const fb = feedback[bevId]
+    if (!fb?.status) return
+    try {
+      await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          inspectie_id: inspectieId || null,
+          bevinding_id: bevId,
+          bevinding_beschrijving: beschrijving,
+          feedback: fb.status,
+          opmerking: fb.opmerking || null,
+        }),
+      })
+      setFeedback(prev => ({ ...prev, [bevId]: { ...prev[bevId], verzonden: true } }))
+    } catch (err) {
+      console.error('Feedback versturen mislukt:', err)
     }
   }
 
@@ -607,6 +640,48 @@ export default function InspectieForm({ inspectieId }: { inspectieId?: string })
                       value={b.norm_referentie} onChange={e => updateBevinding(b.id, { norm_referentie: e.target.value })} />
                   </div>
                 )}
+
+                {/* ── Feedback ─────────────────────────────────────── */}
+                {!b.handmatig && (() => {
+                  const fb = feedback[b.id]
+                  if (fb?.verzonden) return (
+                    <div className="mt-3 pt-3 border-t border-gray-100 text-xs text-gray-400 text-center">
+                      ✓ Feedback ontvangen — bedankt!
+                    </div>
+                  )
+                  return (
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-400 flex-1">Klopt deze bevinding?</span>
+                        <button
+                          onClick={() => setFeedbackStatus(b.id, fb?.status === 'positief' ? null : 'positief')}
+                          className={`px-3 py-1 rounded-lg text-sm transition-colors ${fb?.status === 'positief' ? 'bg-green-100 text-green-700 font-semibold' : 'bg-gray-100 text-gray-500 hover:bg-green-50'}`}>
+                          👍
+                        </button>
+                        <button
+                          onClick={() => setFeedbackStatus(b.id, fb?.status === 'negatief' ? null : 'negatief')}
+                          className={`px-3 py-1 rounded-lg text-sm transition-colors ${fb?.status === 'negatief' ? 'bg-red-100 text-red-700 font-semibold' : 'bg-gray-100 text-gray-500 hover:bg-red-50'}`}>
+                          👎
+                        </button>
+                        {fb?.status && (
+                          <button
+                            onClick={() => verstuurFeedback(b.id, b.beschrijving)}
+                            className="px-3 py-1 rounded-lg text-xs bg-green-700 text-white hover:bg-green-800 transition-colors">
+                            Stuur
+                          </button>
+                        )}
+                      </div>
+                      {fb?.status === 'negatief' && (
+                        <input
+                          className="form-input text-xs mt-2"
+                          placeholder="Wat klopt er niet? (optioneel)"
+                          value={fb.opmerking}
+                          onChange={e => setFeedbackOpmerking(b.id, e.target.value)}
+                        />
+                      )}
+                    </div>
+                  )
+                })()}
               </div>
             ))
           )}
