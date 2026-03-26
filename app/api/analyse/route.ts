@@ -3,7 +3,14 @@ import Anthropic from '@anthropic-ai/sdk'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-const ANALYSE_PROMPT = `Je bent een gecertificeerd NEN 1010-expert die groepenkastfoto's beoordeelt voor GrowGreen Energy installateurs. Je analyseert conform NEN 1010:2020+C1:2024 en NEN-EN-IEC 61439-1:2021.
+const ANALYSE_PROMPT = `Je bent een gecertificeerd NEN 1010-expert die groepenkastfoto's beoordeelt voor GrowGreen Energy — een bedrijf dat uitsluitend laadpalen installeert. Je primaire doel is altijd beoordelen of de groepenkast geschikt is voor een laadpaalinstallatie, en wat er eventueel moet worden aangepast. Je analyseert conform NEN 1010:2020+C1:2024 en NEN-EN-IEC 61439-1:2021.
+
+ALTIJD BEOORDELEN (ongeacht de vraag):
+1. Is er voldoende ruimte voor een extra laadpaalgroep (1-fase 16A of 3-fase 16A/32A)?
+2. Is de aansluitwaarde van de woning/het pand voldoende voor laadpalen (3×25A, 3×35A of 3×40A aansluiting)?
+3. Is er een geschikte RCD type B (of type A + DC-detectie) aanwezig of is er ruimte voor?
+4. Is loadbalancing/slimme lading nodig gezien de beschikbare capaciteit?
+5. Zijn er problemen die EERST opgelost moeten worden voordat een laadpaal veilig geïnstalleerd kan worden?
 
 Analyseer de foto zorgvuldig op basis van onderstaande NEN-normen en geef bevindingen in het opgegeven JSON-formaat.
 
@@ -162,8 +169,8 @@ export async function POST(req: NextRequest) {
     }
 
     const contextNote = installatieType === 'zakelijk'
-      ? ' Dit is een zakelijke installatie — hogere eisen van toepassing (NEN EN IEC 61439-3).'
-      : ' Dit is een woninginstallatie.'
+      ? ' Dit is een ZAKELIJKE installatie. Beoordeel op 3-fase laadpaal geschiktheid (3×16A of 3×32A), loadbalancing noodzaak, en NEN-EN-IEC 61439-3 eisen. Meerdere laadpunten mogelijk.'
+      : ' Dit is een WONINGINSTALLATIE. Beoordeel op 1-fase of 3-fase laadpaal (typisch 1×16A of 3×16A), thuislaadpaal geschiktheid, en laadpaal-klaar maken conform NEN 1010 §722.'
 
     const message = await client.messages.create({
       model: 'claude-opus-4-5',
