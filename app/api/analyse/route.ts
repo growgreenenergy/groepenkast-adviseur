@@ -173,7 +173,7 @@ export async function POST(req: NextRequest) {
       : ' Dit is een WONINGINSTALLATIE. Beoordeel op 1-fase of 3-fase laadpaal (typisch 1×16A of 3×16A), thuislaadpaal geschiktheid, en laadpaal-klaar maken conform NEN 1010 §722.'
 
     const message = await client.messages.create({
-      model: 'claude-opus-4-5',
+      model: 'claude-sonnet-4-6',
       max_tokens: 4000,
       messages: [
         {
