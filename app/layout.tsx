@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import LogoutButton from '@/components/LogoutButton'
 
 export const metadata: Metadata = {
   title: 'Groepenkast Adviseur | GrowGreen Energy',
@@ -19,9 +20,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <div className="text-green-200 text-xs">Groepenkast Adviseur</div>
               </div>
             </div>
-            <a href="/" className="text-green-200 hover:text-white text-sm transition-colors">
-              ← Overzicht
-            </a>
+            <div className="flex items-center gap-4">
+              <a href="/" className="text-green-200 hover:text-white text-sm transition-colors">
+                ← Overzicht
+              </a>
+              <LogoutButton />
+            </div>
           </div>
         </header>
         <main className="max-w-2xl mx-auto px-4 py-6">
