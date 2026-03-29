@@ -57,7 +57,9 @@ export default function BatchImportPage() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [klaarCount, setKlaarCount] = useState(0)
   const [foutCount, setFoutCount] = useState(0)
+  const [etaSeconds, setEtaSeconds] = useState<number | null>(null)
   const abortRef = useRef(false)
+  const startTimeRef = useRef<number>(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropRef = useRef<HTMLDivElement>(null)
   const [dragging, setDragging] = useState(false)
@@ -118,6 +120,7 @@ export default function BatchImportPage() {
 
     setRunning(true)
     abortRef.current = false
+    startTimeRef.current = Date.now()
     let klaar = klaarCount
     let fout = foutCount
 
@@ -125,6 +128,14 @@ export default function BatchImportPage() {
       if (abortRef.current) break
       const item = teVerwerken[i]
       setCurrentIndex(i + 1)
+
+      // ETA berekenen op basis van gemiddelde tijd per foto
+      if (i > 0) {
+        const elapsed = (Date.now() - startTimeRef.current) / 1000
+        const avgPerItem = elapsed / i
+        const remaining = (teVerwerken.length - i) * avgPerItem
+        setEtaSeconds(Math.round(remaining))
+      }
 
       // Stap 1: analyseren
       updateItem(item.id, { status: 'analyseren' })
@@ -195,8 +206,14 @@ export default function BatchImportPage() {
         updateItem(item.id, { status: 'fout', foutmelding: 'Opslaan mislukt: ' + String(err) })
         fout++; setFoutCount(fout)
       }
+
+      // Kleine pauze tussen requests (beschermt tegen API rate limits bij grote batches)
+      if (i < teVerwerken.length - 1 && !abortRef.current) {
+        await new Promise(res => setTimeout(res, 400))
+      }
     }
 
+    setEtaSeconds(null)
     setRunning(false)
   }
 
@@ -311,10 +328,17 @@ export default function BatchImportPage() {
           <div className="flex items-center justify-between mb-3">
             <div className="text-sm font-semibold text-gray-700">
               {running
-                ? `Bezig met ${currentIndex} van ${items.filter(i => i.status !== 'klaar').length + klaar}…`
+                ? `Bezig met foto ${currentIndex} van ${items.filter(i => i.status !== 'klaar').length + klaar}…`
                 : klaar === totaal && totaal > 0
                   ? `✅ Alle ${totaal} foto's verwerkt!`
                   : `${totaal} foto's geladen`}
+              {running && etaSeconds !== null && (
+                <span className="text-gray-400 font-normal ml-2 text-xs">
+                  {'(nog ~'}{etaSeconds >= 60
+                    ? `${Math.floor(etaSeconds / 60)}m ${etaSeconds % 60}s`
+                    : `${etaSeconds}s`}{')'}
+                </span>
+              )}
             </div>
             <div className="flex gap-3 text-xs text-gray-500">
               {wachtend > 0 && <span>⏳ {wachtend} wachtend</span>}
