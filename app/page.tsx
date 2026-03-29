@@ -119,7 +119,10 @@ export default function Dashboard() {
         )}
       </div>
 
-      <div className="text-center">
+      <div className="flex justify-center gap-6">
+        <Link href="/batch-import" className="text-sm text-green-700 hover:text-green-900 font-medium">
+          📦 Batch import
+        </Link>
         <Link href="/producten" className="text-sm text-green-700 hover:text-green-900 font-medium">
           Productcatalogus beheren
         </Link>
