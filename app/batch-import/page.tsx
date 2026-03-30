@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef, useCallback } from 'react'
-import { createSupabaseBrowserClient } from '@/app/supabase-browser'
+import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import Link from 'next/link'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
